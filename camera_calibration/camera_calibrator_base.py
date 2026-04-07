@@ -44,7 +44,7 @@ import pickle
 import tarfile
 import io
 import time
-import random
+import tempfile
 from functools import reduce
 
 # Supported calibration patterns
@@ -773,8 +773,8 @@ class MonoCalibrator(Calibrator):
             self.good_corners = self.collect_corners(images)
         # Dump should only occur if user wants it
         if dump:
-            pickle.dump((self.is_mono, self.size, self.good_corners),
-                        open("/tmp/camera_calibration_%08x.pickle" % random.getrandbits(32), "wb"))
+            with tempfile.NamedTemporaryFile(prefix="camera_calibration_", suffix=".pickle", delete=False, mode="wb") as dump_file:
+                pickle.dump((self.is_mono, self.size, self.good_corners), dump_file)
         self.size = cv.GetSize(self.db[0][1]) # TODO Needs to be set externally
         self.cal_fromcorners(self.good_corners)
         self.calibrated = True
@@ -1078,8 +1078,8 @@ class StereoCalibrator(Calibrator):
         # TODO MonoCalibrator collects corners if needed here
         # Dump should only occur if user wants it
         if dump:
-            pickle.dump((self.is_mono, self.size, corners),
-                        open("/tmp/camera_calibration_%08x.pickle" % random.getrandbits(32), "wb"))
+            with tempfile.NamedTemporaryFile(prefix="camera_calibration_", suffix=".pickle", delete=False, mode="wb") as dump_file:
+                pickle.dump((self.is_mono, self.size, corners), dump_file)
         self.size = cv.GetSize(self.db[0][1]) # TODO Needs to be set externally
         self.l.size = self.size
         self.r.size = self.size
