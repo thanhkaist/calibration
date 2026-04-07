@@ -1,8 +1,12 @@
 import numpy as np
 import math3d as m3d
 
-from aim_tool_pose_generator import AimToolPoseGenerator
-from park_martin_calibration import ParkMartinCalibrator
+try:
+    from .aim_tool_pose_generator import AimToolPoseGenerator
+    from .park_martin_calibration import ParkMartinCalibrator
+except ImportError:
+    from aim_tool_pose_generator import AimToolPoseGenerator
+    from park_martin_calibration import ParkMartinCalibrator
 
 def testsetup(N=100, p_noise=0.0005, r_noise=0.0005):
     """Return a synthetic set of flange and sensor poses. Symmetric,
@@ -45,7 +49,7 @@ def testsetup(N=100, p_noise=0.0005, r_noise=0.0005):
             w = fib.orient.rotation_vector
             w += m3d.Vector(np.random.normal(0.0,r_noise,3))
             fib.orient=m3d.Orientation(w)
-            return np.array(zip(fibs,sios))
+            return np.array(list(zip(fibs, sios)))
 
 
 

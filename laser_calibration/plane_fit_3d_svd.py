@@ -11,4 +11,4 @@ print(A.shape)
 A = A + random.randn(100,3)/3.0
 u,s,vh = linalg.linalg.svd(A)
 v = vh.conj().transpose()
-print v[:,-1] 
+print(v[:,-1]) 

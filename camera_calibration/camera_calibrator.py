@@ -8,9 +8,12 @@ import cv2.cv as cv
 
 import os
 import threading
-import Queue
+import queue
 
-from camera_calibrator_base import MonoCalibrator, ChessboardInfo
+try:
+    from .camera_calibrator_base import MonoCalibrator, ChessboardInfo
+except ImportError:
+    from camera_calibrator_base import MonoCalibrator, ChessboardInfo
 # BUG!
 ESC = 536870939
 
@@ -49,7 +52,7 @@ class CameraCalibration(object):
         self._calib_flags = flags
 
         ## Initialise image queue
-        self.q_mono = Queue.Queue()
+        self.q_mono = queue.Queue()
 
         ## Initialise image grabber
         grabber = GrabberThread(capture, self.queue_monocular)

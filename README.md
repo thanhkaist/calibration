@@ -1,6 +1,6 @@
 # Robot Vision Calibration
 
-A Python toolkit for calibrating robot vision systems, covering camera intrinsics, hand-eye (eye-in-hand) extrinsics, laser line scanners, and turntables. The library is built on OpenCV, NumPy, and `math3d`, and targets Python 2.7 / OpenCV 2.x environments.
+A Python toolkit for calibrating robot vision systems, covering camera intrinsics, hand-eye (eye-in-hand) extrinsics, laser line scanners, and turntables. The library is built on OpenCV, NumPy, and `math3d`, and targets Python 3 / OpenCV environments.
 
 ---
 
@@ -78,7 +78,7 @@ calibration/
 
 | Package | Purpose |
 |---|---|
-| Python 2.7 | Runtime (uses `Queue`, `cv2.cv`, `print` without parentheses in some places) |
+| Python 3 | Runtime |
 | OpenCV 2.x (`cv2`, `cv2.cv`) | Image processing, chessboard detection, `solvePnP` |
 | NumPy | Numerical arrays and linear algebra |
 | [`math3d`](https://pypi.org/project/math3d/) | 3-D transforms, orientations, and vectors |
