@@ -42,8 +42,10 @@ import numpy.linalg
 
 import pickle
 import tarfile
-import StringIO
+import io
 import time
+import tempfile
+from functools import reduce
 
 # Supported calibration patterns
 class Patterns:
@@ -252,10 +254,11 @@ class Calibrator:
 
         return rgb_cvmat
 
-    def get_parameters(self, corners, board, (width, height)):
+    def get_parameters(self, corners, board, size):
         """
         Return list of parameters [X, Y, size, skew] describing the checkerboard view.
         """
+        (width, height) = size
         # Compute some parameters for this chessboard
         Xs = [x for (x, y) in corners]
         Ys = [y for (x, y) in corners]
@@ -305,7 +308,7 @@ class Calibrator:
         # TODO Awkward that we update self.goodenough instead of returning it
         self.goodenough = (len(self.db) >= 40) or all([p == 1.0 for p in progress])
 
-        return zip(self._param_names, min_params, max_params, progress)
+        return list(zip(self._param_names, min_params, max_params, progress))
 
     def mk_object_points(self, boards, use_board_size = False):
         opts = cv.CreateMat(_get_total_num_pts(boards), 3, cv.CV_32FC1)
@@ -314,11 +317,11 @@ class Calibrator:
             num_pts = b.n_cols * b.n_rows
             for j in range(num_pts):
                 if use_board_size:
-                    opts[idx + j, 0] = (j / b.n_cols) * b.dim
+                    opts[idx + j, 0] = (j // b.n_cols) * b.dim
                     opts[idx + j, 1] = (j % b.n_cols) * b.dim
                     opts[idx + j, 2] = 0
                 else:
-                    opts[idx + j, 0] = (j / b.n_cols) * 1.0
+                    opts[idx + j, 0] = (j // b.n_cols) * 1.0
                     opts[idx + j, 1] = (j % b.n_cols) * 1.0
                     opts[idx + j, 2] = 0
             idx += num_pts
@@ -437,10 +440,10 @@ class Calibrator:
         return msg
 
     def lrreport(self, d, k, r, p):
-        print "D = ", list(cvmat_iterator(d))
-        print "K = ", list(cvmat_iterator(k))
-        print "R = ", list(cvmat_iterator(r))
-        print "P = ", list(cvmat_iterator(p))
+        print("D = ", list(cvmat_iterator(d)))
+        print("K = ", list(cvmat_iterator(k)))
+        print("R = ", list(cvmat_iterator(r)))
+        print("P = ", list(cvmat_iterator(p)))
 
     # TODO Get rid of OST format, show output as YAML instead
     def lrost(self, name, d, k, r, p):
@@ -489,7 +492,7 @@ class Calibrator:
         tf = tarfile.open(filename, 'w:gz')
         self.do_tarfile_save(tf) # Must be overridden in subclasses
         tf.close()
-        print "Wrote calibration data to", filename
+        print("Wrote calibration data to", filename)
 
 def image_from_archive(archive, name):
     """
@@ -534,7 +537,7 @@ class MonoCalibrator(Calibrator):
         images = [cv.LoadImage("mono%d.png") for i in range(8)]
         mc = MonoCalibrator()
         mc.cal(images)
-        print mc.as_message()
+        print(mc.as_message())
     """
 
     is_mono = True  # TODO Could get rid of is_mono
@@ -755,7 +758,7 @@ class MonoCalibrator(Calibrator):
             if self.is_good_sample(params):
                 self.db.append((params, rgb))
                 self.good_corners.append((corners, board))
-                print "*** Added sample %d, p_x = %.3f, p_y = %.3f, p_size = %.3f, skew = %.3f" % tuple([len(self.db)] + params)
+                print("*** Added sample %d, p_x = %.3f, p_y = %.3f, p_size = %.3f, skew = %.3f" % tuple([len(self.db)] + params))
 
         rv = MonoDrawable()
         rv.scrib = scrib
@@ -765,25 +768,25 @@ class MonoCalibrator(Calibrator):
 
     def do_calibration(self, dump = False):
         if not self.good_corners:
-            print "**** Collecting corners for all images! ****" #DEBUG
+            print("**** Collecting corners for all images! ****") #DEBUG
             images = [i for (p, i) in self.db]
             self.good_corners = self.collect_corners(images)
         # Dump should only occur if user wants it
         if dump:
-            pickle.dump((self.is_mono, self.size, self.good_corners),
-                        open("/tmp/camera_calibration_%08x.pickle" % random.getrandbits(32), "w"))
+            with tempfile.NamedTemporaryFile(prefix="camera_calibration_", suffix=".pickle", delete=False, mode="wb") as dump_file:
+                pickle.dump((self.is_mono, self.size, self.good_corners), dump_file)
         self.size = cv.GetSize(self.db[0][1]) # TODO Needs to be set externally
         self.cal_fromcorners(self.good_corners)
         self.calibrated = True
-        print self.ost() # DEBUG
+        print(self.ost()) # DEBUG
 
     def do_tarfile_save(self, tf):
         """ Write images and calibration solution to a tarfile object """
 
         def taradd(name, buf):
-            s = StringIO.StringIO(buf)
+            s = io.BytesIO(buf)
             ti = tarfile.TarInfo(name)
-            ti.size = len(s.buf)
+            ti.size = len(buf)
             ti.uname = 'calibrator'
             ti.mtime = int(time.time())
             tf.addfile(tarinfo=ti, fileobj=s)
@@ -812,7 +815,7 @@ class StereoCalibrator(Calibrator):
         rimages = [cv.LoadImage("right%d.png") for i in range(8)]
         sc = StereoCalibrator()
         sc.cal(limages, rimages)
-        print sc.as_message()
+        print(sc.as_message())
     """
 
     is_mono = False
@@ -935,12 +938,12 @@ class StereoCalibrator(Calibrator):
             self.set_alpha(0.0)
 
     def report(self):
-        print "\nLeft:"
+        print("\nLeft:")
         self.lrreport(self.l.distortion, self.l.intrinsics, self.l.R, self.l.P)
-        print "\nRight:"
+        print("\nRight:")
         self.lrreport(self.r.distortion, self.r.intrinsics, self.r.R, self.r.P)
-        print "self.T", list(cvmat_iterator(self.T))
-        print "self.R", list(cvmat_iterator(self.R))
+        print("self.T", list(cvmat_iterator(self.T)))
+        print("self.R", list(cvmat_iterator(self.R)))
 
     def ost(self):
         return (self.lrost("left", self.l.distortion, self.l.intrinsics, self.l.R, self.l.P) +
@@ -1062,7 +1065,7 @@ class StereoCalibrator(Calibrator):
                 if self.is_good_sample(params):
                     self.db.append( (params, lrgb, rrgb) )
                     self.good_corners.append( (lcorners, rcorners, lboard) )
-                    print "*** Added sample %d, p_x = %.3f, p_y = %.3f, p_size = %.3f, skew = %.3f" % tuple([len(self.db)] + params)
+                    print("*** Added sample %d, p_x = %.3f, p_y = %.3f, p_size = %.3f, skew = %.3f" % tuple([len(self.db)] + params))
 
         rv = StereoDrawable()
         rv.lscrib = lscrib
@@ -1075,14 +1078,14 @@ class StereoCalibrator(Calibrator):
         # TODO MonoCalibrator collects corners if needed here
         # Dump should only occur if user wants it
         if dump:
-            pickle.dump((self.is_mono, self.size, corners),
-                        open("/tmp/camera_calibration_%08x.pickle" % random.getrandbits(32), "w"))
+            with tempfile.NamedTemporaryFile(prefix="camera_calibration_", suffix=".pickle", delete=False, mode="wb") as dump_file:
+                pickle.dump((self.is_mono, self.size, corners), dump_file)
         self.size = cv.GetSize(self.db[0][1]) # TODO Needs to be set externally
         self.l.size = self.size
         self.r.size = self.size
         self.cal_fromcorners(self.good_corners)
         self.calibrated = True
-        print self.ost() # DEBUG
+        print(self.ost()) # DEBUG
 
     def do_tarfile_save(self, tf):
         """ Write images and calibration solution to a tarfile object """
@@ -1090,9 +1093,9 @@ class StereoCalibrator(Calibrator):
                [("right-%04d.png" % i, im) for i,(_, _, im) in enumerate(self.db)])
 
         def taradd(name, buf):
-            s = StringIO.StringIO(buf)
+            s = io.BytesIO(buf)
             ti = tarfile.TarInfo(name)
-            ti.size = len(s.buf)
+            ti.size = len(buf)
             ti.uname = 'calibrator'
             ti.mtime = int(time.time())
             tf.addfile(tarinfo=ti, fileobj=s)

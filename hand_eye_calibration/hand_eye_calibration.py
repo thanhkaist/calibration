@@ -1,6 +1,9 @@
-
-from park_martin_calibration import ParkMartinCalibrator
-from tsai_lenz_calibration import TsaiLenzCalibrator
+try:
+    from .park_martin_calibration import ParkMartinCalibrator
+    from .tsai_lenz_calibration import TsaiLenzCalibrator
+except ImportError:
+    from park_martin_calibration import ParkMartinCalibrator
+    from tsai_lenz_calibration import TsaiLenzCalibrator
 import cv2
 import numpy as np
 import math3d as m3d
@@ -42,7 +45,7 @@ class HandEyeCalibration(object):
             cv2.cornerSubPix(image, corners, (5, 5), (-1, -1), term)
             corners.reshape(-1, 2)
             if not found:
-                print '[HEC] Chessboard not found'
+                print('[HEC] Chessboard not found')
             if self._debug:
                 color_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
                 cv2.drawChessboardCorners(color_image,
@@ -120,4 +123,3 @@ if __name__ == '__main__':
     sif_cal = hec.calibrator.sensor_in_flange
     print('Sensor in flange:')
     print(sif_cal)
-

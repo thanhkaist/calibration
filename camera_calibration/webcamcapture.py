@@ -1,6 +1,10 @@
 import cv2
+import time
 
-from camera_calibrator import OpenCVCalibrator
+try:
+    from .camera_calibrator import OpenCVCalibration, ChessboardInfo
+except ImportError:
+    from camera_calibrator import OpenCVCalibration, ChessboardInfo
 
 if __name__ == '__main__':
     capture = cv2.VideoCapture(0)

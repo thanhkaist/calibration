@@ -226,7 +226,7 @@ class TurntableCalibrator(object):
         cv2.destroyAllWindows()
         self.center, self.axis, self.angspeed = tc.find_rotation_point_and_axis()
         self.calibrated = True
-        print self.center, self.axis, self.angspeed
+        print(self.center, self.axis, self.angspeed)
         
         
     def save_calibration(self):
@@ -252,8 +252,8 @@ class ATC4Capture(threading.Thread):
         self.sock.connect((self.host, self.port))
 
     def read(self):
-        recv = ""
-        self.sock.send("s")  # s = start
+        recv = b""
+        self.sock.send(b"s")  # s = start
         while(len(recv) < 2048*1088):
             recv += self.sock.recv(8192)
         frame = np.frombuffer(recv, np.uint8)

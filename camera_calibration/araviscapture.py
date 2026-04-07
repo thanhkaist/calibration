@@ -16,12 +16,12 @@ class AravisCapture():
         print("Sensor size: ", self.cam.get_sensor_size()) 
         print("Frame rate: ", self.cam.get_frame_rate())
         self.cam.start_acquisition_continuous()
-        print "camera started"
+        print("camera started")
         self.counter = 0
 
     def read(self):
         self.counter += 1
-        print "trying to get frame: ", self.counter
+        print("trying to get frame: ", self.counter)
         frame = self.cam.get_frame(wait=True)
         return True, frame
 
